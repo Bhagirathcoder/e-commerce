@@ -33,12 +33,7 @@ http://localhost:8081
 
 On the first start with an empty database, `DataSeeder` creates tables (Hibernate `ddl-auto=update`) and demo data.
 
-### Demo logins (BCrypt-hashed at seed time)
-| Role | Email | Password |
-|---|---|---|
-| Admin | admin@bytebazaar.com | Admin@123 |
-| Seller | seller@bytebazaar.com | Seller@123 |
-| Customer | user@bytebazaar.com | User@123 |
+
 
 Demo bank accounts (clearly labelled **DEMO ACCOUNT — NOT A REAL BANK ACCOUNT**): admin `000000000001 / DEMO0000001 / admin@demo`, seller `000000000002 / DEMO0000002 / seller@demo`.
 
