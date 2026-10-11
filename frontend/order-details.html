@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Order details | ByteBazaar</title>
+  <meta name="description" content="ByteBazaar - Shop More. Live Better.">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+
+<body>
+  <div id="bb-header"></div>
+  <main class="container-xl page-wrap pt-3">
+    <div id="od">
+      <div class="loader"></div>
+    </div>
+  </main>
+  <div id="bb-footer"></div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+
+    const $ = BB.$, id = BB.qs('id'), FLOW = ['PLACED', 'CONFIRMED', 'PROCESSING', 'SHIPPING', 'OUT_FOR_DELIVERY', 'DELIVERED'];
+    let O;
+    async function load() {
+      try {
+        O = await BB.api('/api/orders/' + id); const tr = await BB.api('/api/orders/' + id + '/tracking');
+        const seen = new Set(tr.map(t => t.status)); const pend = O.status === 'CANCELLED' ? [] : FLOW.filter(s => !seen.has(s) && s !== 'PROCESSING').map(s => s.replace(/_/g, ' '));
+        const banner = BB.qs('placed') ? `<div class="alert alert-success"><b>Thank you!</b> Your order #${O.id} has been ${O.paymentMethod === 'UPI' && O.paymentStatus !== 'SUCCESS' ? 'placed. Complete the UPI payment to confirm it.' : 'placed successfully.'}</div>` : '';
+        $('#od').innerHTML = banner + `<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2"><div><h1 class="h4 mb-0">Order #${O.id}</h1><div class="text-muted small">Placed ${BB.dt(O.createdAt)} · Invoice ${BB.esc(O.invoiceNumber || '')}</div></div><div class="d-flex gap-2 flex-wrap">${BB.badge(O.status)}<button class="btn btn-sm btn-bb" id="inv"><i class="bi bi-file-earmark-pdf"></i> Download Invoice PDF</button>${O.items.some(i => i.warrantyMonths > 0) && O.status === 'DELIVERED' ? '<button class="btn btn-sm btn-navy" id="war"><i class="bi bi-shield-check"></i> Download Warranty Invoice</button>' : ''}${O.canCancel ? '<button class="btn btn-sm btn-outline-danger" id="cancel">Cancel order</button>' : ''}${O.paymentMethod === 'UPI' && O.paymentStatus === 'PENDING' && O.status === 'PLACED' ? `<a class="btn btn-sm btn-bb2" href="/payment.html?order=${O.id}">Pay now</a>` : ''}</div></div>
+    <div class="row g-3"><div class="col-lg-8"><div class="bb-card mb-3"><h5>Items</h5>${O.items.map(it => `<div class="d-flex gap-3 py-2 border-bottom flex-wrap"><img src="${BB.src(it.image, it.name)}" width="80" height="80" style="object-fit:contain;background:#f6f8fb;border-radius:8px"><div class="flex-grow-1"><a class="fw-semibold" href="/product-details.html?id=${it.productId}">${BB.esc(it.name)}</a><div class="small text-muted">Qty ${it.quantity} · ${BB.money(it.unitPrice)} each · Sold by ${BB.esc(it.seller)}</div><div class="mt-2 d-flex gap-2 flex-wrap align-items-center">${itemActions(it)}</div></div><div class="fw-bold">${BB.money(it.lineTotal)}</div></div>`).join('')}
+      ${O.status === 'DELIVERED' ? `<div class="mt-3 small ${O.returnWindowOpen ? 'text-success' : 'text-danger'}"><i class="bi bi-arrow-return-left"></i> ${O.returnWindowOpen ? 'Delivered ' + BB.dateOnly(O.deliveredAt) + ' — return valid until <b>' + BB.dateOnly(O.returnDeadline) + '</b>' : 'Return period expired on ' + BB.dateOnly(O.returnDeadline)}</div>` : ''}</div>
+      <div class="bb-card"><h5>Tracking</h5>${BB.timeline(tr, pend)}<div class="small text-muted">Estimated delivery: ${O.estimatedDelivery ? BB.dateOnly(O.estimatedDelivery) : '-'}</div></div></div>
+    <div class="col-lg-4"><div class="bb-card mb-3"><h6>Delivery address</h6><div>${BB.esc(O.shipName)}<br>${BB.esc(O.shipAddress)}, ${BB.esc(O.shipCity)}${O.shipDistrict ? ', ' + BB.esc(O.shipDistrict) : ''}<br>${BB.esc(O.shipState)} - ${BB.esc(O.shipPin)}<br><i class="bi bi-telephone"></i> ${BB.esc(O.shipPhone)}</div></div>
+      <div class="bb-card mb-3"><h6>Payment</h6><div>${O.paymentMethod === 'COD' ? 'Cash on Delivery' : 'UPI'} · ${BB.badge(O.paymentStatus)}</div></div>
+      <div class="bb-card"><h6>Order Summary</h6><div class="summary-line"><span>Subtotal</span><span>${BB.money(O.subtotal)}</span></div><div class="summary-line text-success"><span>Discount</span><span>− ${BB.money(O.discount)}</span></div><div class="summary-line"><span>Shipping</span><span>${Number(O.shipping) ? BB.money(O.shipping) : 'FREE'}</span></div><div class="summary-line"><span>Tax</span><span>${BB.money(O.tax)}</span></div><div class="summary-line total"><span>Total</span><span>${BB.money(O.total)}</span></div></div></div></div>`;
+        $('#inv').onclick = () => BB.download('/api/orders/' + id + '/invoice', 'ByteBazaar-Invoice-' + id + '.pdf');
+        if ($('#war')) $('#war').onclick = () => BB.download('/api/orders/' + id + '/warranty', 'ByteBazaar-Warranty-' + id + '.pdf');
+        if ($('#cancel')) $('#cancel').onclick = async () => { if (await BB.confirmBox('Cancel this order? Stock is released and any online payment is refunded.', 'Cancel order')) { try { await BB.api('/api/orders/' + id + '/cancel', { method: 'PUT' }); BB.toast('Order cancelled'); load(); } catch (e) { BB.fail(e); } } };
+        BB.$$('[data-ret]').forEach(b => b.onclick = () => returnModal(O.items.find(i => i.id == b.dataset.ret)));
+        BB.$$('[data-rev]').forEach(b => b.onclick = () => reviewModal(O.items.find(i => i.id == b.dataset.rev)));
+      } catch (e) { BB.errorState($('#od'), e); }
+    }
+    function itemActions(it) {
+      let h = '';
+      if (O.status === 'DELIVERED' && it.returnable) {
+        if (it.canReturn) h += `<button class="btn btn-sm btn-outline-danger" data-ret="${it.id}"><i class="bi bi-arrow-return-left"></i> Return Product</button>`;
+        else if (it.returnId) h += `<a class="btn btn-sm btn-outline-secondary" href="/returns.html?id=${it.returnId}">Return: ${BB.esc(String(it.returnStatus).replace(/_/g, ' '))}</a>`;
+        else h += '<span class="badge text-bg-secondary">Return Period Expired</span>';
+      } else if (O.status === 'DELIVERED' && !it.returnable) h += '<span class="small text-muted">Not returnable</span>';
+      if (O.status === 'DELIVERED' && !it.reviewed) h += `<button class="btn btn-sm btn-outline-warning" data-rev="${it.id}"><i class="bi bi-star"></i> Write a review</button>`;
+      if (O.status === 'DELIVERED' && it.reviewed) h += '<span class="small text-success"><i class="bi bi-check-circle"></i> Reviewed</span>';
+      return h;
+    }
+    function returnModal(it) {
+      const m = BB.modal('Return Product', `<div class="mb-2 fw-semibold">${BB.esc(it.name)}</div><form id="rf"><label class="form-label">Return reason</label><select class="form-select mb-2" name="reason" required><option value="">Select a reason</option>${['Damaged Product', 'Wrong Product', 'Defective Product', 'Product Not as Described', 'Size Problem', 'Missing Item', 'Other'].map(r => `<option>${r}</option>`).join('')}</select><label class="form-label">Additional comment</label><textarea class="form-control mb-2" name="comment" rows="3" maxlength="900"></textarea><label class="form-label">Upload product photos (JPG, PNG, WEBP · max 5)</label><input class="form-control" type="file" name="photos" accept=".jpg,.jpeg,.png,.webp" multiple></form>`, { footer: '<button class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-bb" id="rs">Submit Return</button>' });
+      $('#rs', m.el).onclick = async e => {
+        const f = $('#rf', m.el); if (!f.reportValidity()) return; const fd = new FormData(f); fd.append('orderItemId', it.id); BB.spin(e.target, true);
+        try { await BB.api('/api/returns', { method: 'POST', form: fd }); m.close(); BB.toast('Return requested'); load(); } catch (x) { BB.fail(x); BB.spin(e.target, false); }
+      };
+    }
+    function reviewModal(it) {
+      let rating = 0;
+      const m = BB.modal('Rate & review', `<div class="fw-semibold mb-2">${BB.esc(it.name)}</div><form id="vf"><div class="star-input mb-2" id="si">${[1, 2, 3, 4, 5].map(n => `<span data-n="${n}">★</span>`).join('')}</div><input class="form-control mb-2" name="title" placeholder="Review title" maxlength="120"><textarea class="form-control mb-2" name="body" rows="4" placeholder="Write your review"></textarea><label class="form-label">Photos (JPG, PNG, WEBP)</label><input class="form-control" type="file" name="photos" accept=".jpg,.jpeg,.png,.webp" multiple></form>`, { footer: '<button class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-bb" id="vs">Submit review</button>' });
+      BB.$$('#si span', m.el).forEach(s => s.onclick = () => { rating = +s.dataset.n; BB.$$('#si span', m.el).forEach(x => x.classList.toggle('on', +x.dataset.n <= rating)); });
+      $('#vs', m.el).onclick = async e => {
+        if (!rating) { BB.toast('Please choose a star rating', 'err'); return; } const fd = new FormData($('#vf', m.el)); fd.append('rating', rating); BB.spin(e.target, true);
+        try { await BB.api('/api/products/' + it.productId + '/reviews', { method: 'POST', form: fd }); m.close(); BB.toast('Thanks for your review!'); load(); } catch (x) { BB.fail(x); BB.spin(e.target, false); }
+      };
+    }
+    (async () => { if (await BB.init({ auth: true, roles: ['USER'] })) load(); })();
+
+  </script>
+</body>
+
+</html>

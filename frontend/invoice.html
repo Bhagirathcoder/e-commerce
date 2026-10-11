@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Invoices | ByteBazaar</title>
+  <meta name="description" content="ByteBazaar - Shop More. Live Better.">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+
+<body>
+  <div id="bb-header"></div>
+  <main class="container-xl page-wrap pt-3">
+    <h1 class="h4">Invoices</h1>
+    <div class="bb-card" id="list">
+      <div class="loader"></div>
+    </div>
+  </main>
+  <div id="bb-footer"></div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+
+    (async () => {
+      if (!await BB.init({ auth: true, roles: ['USER'] })) return; const el = BB.$('#list');
+      try {
+        const l = await BB.api('/api/orders'); BB.table(el, [{ h: 'Invoice', f: o => BB.esc(o.invoiceNumber || '') }, { h: 'Order', f: o => '<a href="/order-details.html?id=' + o.id + '">#' + o.id + '</a>' }, { h: 'Date', f: o => BB.dateOnly(o.createdAt) }, { h: 'Total', f: o => BB.money(o.total) }, { h: '', f: o => '<button class="btn btn-sm btn-bb" data-i="' + o.id + '"><i class="bi bi-file-earmark-pdf"></i> Download Invoice PDF</button>' }], l, 'No invoices yet');
+        BB.$$('[data-i]').forEach(b => b.onclick = () => BB.download('/api/orders/' + b.dataset.i + '/invoice', 'ByteBazaar-Invoice-' + b.dataset.i + '.pdf')); const q = BB.qs('order'); if (q) BB.download('/api/orders/' + q + '/invoice', 'ByteBazaar-Invoice-' + q + '.pdf');
+      } catch (e) { BB.errorState(el, e); }
+    })();
+
+  </script>
+</body>
+
+</html>

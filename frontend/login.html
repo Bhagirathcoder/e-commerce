@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sign in | ByteBazaar</title>
+  <meta name="description" content="ByteBazaar - Shop More. Live Better.">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+
+<body>
+  <div id="bb-header"></div>
+  <main class="container-xl page-wrap pt-3">
+    <div class="auth-wrap">
+      <div class="logo-big"><a href="/index.html"><img src="/images/logo.svg" alt="ByteBazaar"></a></div>
+      <h4 class="mb-3">Sign in</h4>
+      <div id="msg"></div>
+      <form id="f">
+        <div class="mb-3"><label class="form-label">Email / Phone</label><input class="form-control" name="identifier"
+            required autocomplete="username"></div>
+        <div class="mb-2"><label class="form-label">Password</label><input class="form-control" type="password"
+            name="password" required autocomplete="current-password"></div>
+        <div class="d-flex justify-content-between mb-3">
+          <div class="form-check"><input class="form-check-input" type="checkbox" id="rem" checked><label
+              class="form-check-label" for="rem">Remember me</label></div><a href="/forgot-password.html">Forgot
+            Password?</a>
+        </div><button class="btn btn-bb w-100 py-2" id="go">Sign in</button>
+      </form>
+      <div class="text-center mt-3">New to ByteBazaar? <a href="/register.html">Create Account</a></div>
+      <div class="demo-box"><b>Demo logins</b> (click to fill)<br><a href="#" data-e="user@bytebazaar.com"
+          data-p="User@123">Customer</a> · <a href="#" data-e="seller@bytebazaar.com" data-p="Seller@123">Seller</a> ·
+        <a href="#" data-e="admin@bytebazaar.com" data-p="Admin@123">Admin</a></div>
+    </div>
+  </main>
+  <div id="bb-footer"></div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+
+    const $ = BB.$;
+    (async () => {
+      await BB.init(); if (BB.token() && BB.user() && !BB.qs('blocked')) { location.href = BB.homeFor(BB.user().role); return; }
+      if (BB.qs('blocked')) $('#msg').innerHTML = '<div class="alert alert-danger">Your ByteBazaar account has been blocked by the administrator.<br>Please contact customer support.</div>';
+      BB.$$('[data-e]').forEach(a => a.onclick = e => { e.preventDefault(); $('[name=identifier]').value = a.dataset.e; $('[name=password]').value = a.dataset.p; });
+      $('#f').onsubmit = async e => {
+        e.preventDefault(); BB.spin($('#go'), true, 'Signing in...');
+        try {
+          const r = await BB.api('/api/auth/login', { method: 'POST', body: { identifier: e.target.identifier.value, password: e.target.password.value } }); BB.setAuth(r);
+          if (!$('#rem').checked) { localStorage.setItem('bb_temp_login', '1'); sessionStorage.setItem('bb_alive', '1'); } else localStorage.removeItem('bb_temp_login');
+          const n = BB.qs('next'); location.href = n && n.startsWith('/') && !n.startsWith('//') ? n : BB.homeFor(r.user.role);
+        } catch (x) { if (x.status === 403) $('#msg').innerHTML = '<div class="alert alert-danger">' + BB.esc(x.message) + '</div>'; else BB.fail(x); BB.spin($('#go'), false); }
+      };
+    })();
+
+  </script>
+</body>
+
+</html>

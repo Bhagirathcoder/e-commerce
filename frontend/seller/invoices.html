@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Invoices | ByteBazaar</title>
+  <meta name="description" content="ByteBazaar - Shop More. Live Better.">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="dash">
+    <aside class="sidebar" id="sidebar"></aside>
+    <section class="dash-main">
+      <div class="dash-top" id="dash-top"></div>
+      <div class="table-card" id="t">
+        <div class="loader"></div>
+      </div>
+    </section>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/dash.js"></script>
+  <script>
+    const $ = BB.$;
+    if (BB.dash('SELLER', 'invoices', 'Invoices')) {
+
+      (async () => {
+        try {
+          const o = await BB.api('/api/seller/orders'); BB.table($('#t'), [{ h: 'Invoice', f: x => BB.esc(x.invoiceNumber || '') }, { h: 'Order', f: x => '#' + x.id }, { h: 'Customer', f: x => BB.esc(x.customerName) }, { h: 'Date', f: x => BB.dateOnly(x.createdAt) }, { h: 'Your items total', f: x => BB.money(x.items.reduce((a, i) => a + Number(i.lineTotal), 0)) }, { h: '', f: x => `<button class="btn btn-sm btn-bb" data-i="${x.id}"><i class="bi bi-file-earmark-pdf"></i> Download</button>` }], o, 'No invoices yet.');
+          BB.$$('[data-i]').forEach(b => b.onclick = () => BB.download('/api/orders/' + b.dataset.i + '/invoice', 'ByteBazaar-Seller-Invoice-' + b.dataset.i + '.pdf'));
+        } catch (e) { BB.errorState($('#t'), e); }
+      })();
+    }
+  </script>
+</body>
+
+</html>

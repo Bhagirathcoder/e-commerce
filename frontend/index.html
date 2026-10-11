@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Home | ByteBazaar</title>
+  <meta name="description" content="ByteBazaar - Shop More. Live Better.">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+
+<body>
+  <div id="bb-header"></div>
+  <main class="page-wrap">
+    <div class="hero" id="hero">
+      <div class="skel" style="height:340px"></div>
+    </div>
+    <div class="container-xl">
+      <div class="row g-3 overlap" id="tiles"></div>
+      <div class="section mt-3" id="festival">
+        <h2>🔥 Great Deal — Festival Sale</h2>
+        <div class="deal-strip mb-3" id="festBanners"></div>
+        <div id="rowDeals"></div>
+      </div>
+      <div class="section">
+        <h2>Shop by Category</h2>
+        <div class="cat-circles" id="cats"></div>
+      </div>
+      <div class="section">
+        <h2>Trending Products</h2><a class="more" href="/products.html?sort=popular">See all</a>
+        <div id="rowTrending"></div>
+      </div>
+      <div class="section">
+        <h2>Best Sellers</h2><a class="more" href="/products.html?sort=popular">See all</a>
+        <div id="rowBest"></div>
+      </div>
+      <div class="section">
+        <h2>Verified Products <i class="bi bi-patch-check-fill text-success"></i></h2><a class="more"
+          href="/products.html?sort=newest">New arrivals</a>
+        <div id="rowVerified"></div>
+      </div>
+      <div id="brandDeals"></div>
+      <div class="section">
+        <h2>Recommended for You</h2>
+        <div id="rowRec"></div>
+      </div>
+      <div class="section" id="rvSec" style="display:none">
+        <h2>Recently Viewed</h2>
+        <div id="rowViewed"></div>
+      </div>
+      <div class="section">
+        <h2>What Customers Say</h2>
+        <div class="row g-3" id="reviews"></div>
+      </div>
+      <div class="cs-band">
+        <div>
+          <h3 class="mb-1">24×7 Customer Support</h3>
+          <div class="opacity-75">Ask our AI Assistant about your order, payment, returns or refunds — or chat with a
+            ByteBazaar admin.</div>
+        </div><a class="btn btn-bb btn-lg" href="/support.html"><i class="bi bi-headset"></i> Get help now</a>
+      </div>
+    </div>
+  </main>
+  <div id="bb-footer"></div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+
+    const $ = BB.$, EM = ['🛍️', '🪔', '👗', '🏏', '🎧', '🏠'];
+    function hero(banners) {
+      const el = $('#hero');
+      if (!banners.length) { banners = [{ saleTitle: 'GREAT FESTIVAL SALE', productName: 'Shop More. Live Better.', discountText: 'Up to 70% OFF', bgColor: '#0f2742', link: '/products.html', ctaText: 'Shop Now' }]; }
+      const n = banners.length;
+      const slide = (b, i) => `<div class="hero-slide" style="background:linear-gradient(120deg,${BB.esc(b.bgColor || '#0f2742')},#0a1a2e 140%)"><div class="hero-text"><span class="tag">${BB.esc(b.saleTitle)}</span><h1>${BB.esc(b.productName || '')}</h1><div class="off">${BB.esc(b.discountText || '')}</div><p>Verified products · Free delivery over ₹499 · 7-day returns</p><a class="btn btn-bb btn-lg" href="${BB.esc(b.link || '/products.html')}">${BB.esc(b.ctaText || 'Shop Now')} <i class="bi bi-arrow-right"></i></a></div><div class="hero-art d-none d-sm-block">${b.imageUrl ? `<img src="${BB.esc(b.imageUrl)}" alt="">` : EM[i % EM.length]}</div></div>`;
+      const s = banners.map(slide);
+      el.innerHTML = `<div class="hero-track">${s.join('')}${s[0]}</div><button class="hero-nav l" aria-label="Previous"><i class="bi bi-chevron-left"></i></button><button class="hero-nav r" aria-label="Next"><i class="bi bi-chevron-right"></i></button><div class="hero-dots">${banners.map((_, i) => `<span data-i="${i}"></span>`).join('')}</div>`;
+      const track = $('.hero-track', el); let i = 0, busy = false;
+      const dots = () => BB.$$('.hero-dots span', el).forEach((d, k) => d.classList.toggle('on', k === (i % n)));
+      const go = (k, anim = true) => { track.style.transition = anim ? '' : 'none'; track.style.transform = `translateX(${-100 * k}%)`; i = k; dots(); };
+      const next = () => { if (busy) return; busy = true; go(i + 1); if (i === n) { setTimeout(() => { go(0, false); busy = false; }, 850); } else setTimeout(() => busy = false, 850); };  // always scrolls right → left
+      const prev = () => { if (busy) return; busy = true; if (i === 0) { go(n, false); void track.offsetWidth; go(n - 1); } else go(i - 1); setTimeout(() => busy = false, 850); };
+      $('.hero-nav.r', el).onclick = next; $('.hero-nav.l', el).onclick = prev;
+      BB.$$('.hero-dots span', el).forEach(d => d.onclick = () => go(+d.dataset.i));
+      let t = n > 1 && setInterval(next, 4500); el.onmouseenter = () => t && clearInterval(t); el.onmouseleave = () => { if (n > 1) t = setInterval(next, 4500); };
+      dots();
+    }
+    const TILES = [['Upgrade your tech', [['Laptop', '💻'], ['Mobile', '📱'], ['Headphones', '🎧'], ['Television', '📺']]], ['Fashion & Beauty', [["Men's Clothing", '👔'], ["Women's Clothing", '👗'], ['Skincare', '🧴'], ['Shoes', '👟']]], ['Home & Furniture', [['Sofa', '🛋️'], ['Chair', '💺'], ['Lighting', '💡'], ['Wall Decor', '🖼️']]], ['Play & Fitness', [['Cricket', '🏏'], ['Fitness', '🧘'], ['Kids Toys', '🧸'], ['Games', '🎲']]]];
+    const BG = ['#dbeafe', '#fde68a', '#fbcfe8', '#bbf7d0'];
+    function cd(end) { const ms = new Date(end) - Date.now(); if (ms <= 0) return 'Ended'; const d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24; return `Ends in ${d}d ${h}h`; }
+    (async () => {
+      await BB.init(); await BB.loadWish();
+      $('#tiles').innerHTML = TILES.map(t => `<div class="col-6 col-lg-3"><div class="tile-card"><h3>${t[0]}</h3><div class="tile-grid">${t[1].map((x, i) => `<a class="tile" href="/products.html?category=${encodeURIComponent(x[0])}"><div class="em" style="background:${BG[i]}">${x[1]}</div>${BB.esc(x[0])}</a>`).join('')}</div></div></div>`).join('');
+      try {
+        const d = await BB.api('/api/home');
+        hero(d.banners);
+        $('#cats').innerHTML = d.categories.map((c, i) => `<a class="cat-circle" href="/products.html?category=${encodeURIComponent(c.name)}"><div class="em" style="background:${BG[i % 4]}">${BB.ph(c.name).includes('svg') ? ({ Clothing: '👕', Electronics: '💻', Toys: '🧸', Furniture: '🛋️', Beauty: '💄', 'Home Decor': '🪔', Sports: '🏏' }[c.name] || '🛍️') : ''}</div>${BB.esc(c.name)}</a>`).join('');
+        const fest = d.promotions.filter(p => p.type === 'FESTIVAL');
+        $('#festBanners').innerHTML = fest.length ? fest.map(p => `<div class="deal-banner"><h4>${BB.esc(p.name)}</h4><div>${BB.esc(p.description || '')}</div><div class="big">Extra ${p.discountPercent}% OFF</div><span class="countdown">${cd(p.endDate)}</span><div class="em">🎉</div></div>`).join('') : `<div class="deal-banner"><h4>GREAT FESTIVAL SALE</h4><div>Biggest discounts of the season</div><div class="big">Up to 70% OFF</div><a class="btn btn-bb btn-sm mt-2" href="/products.html?sort=discount">Shop Now</a><div class="em">🎉</div></div>`;
+        BB.row($('#rowDeals'), d.deals); BB.row($('#rowTrending'), d.trending); BB.row($('#rowBest'), d.bestSellers); BB.row($('#rowVerified'), d.verified); BB.row($('#rowRec'), d.recommended);
+        const brands = d.promotions.filter(p => p.type === 'BRAND');
+        for (const p of brands) { const ids = p.productIds.slice(0, 10); if (!ids.length) continue; const box = document.createElement('div'); box.className = 'section'; box.innerHTML = `<h2>Brand Deals: ${BB.esc(p.name)}${p.brandName ? ' · ' + BB.esc(p.brandName) : ''} <span class="badge bg-danger">${p.discountPercent}% OFF</span></h2><div></div>`; $('#brandDeals').appendChild(box); BB.api('/api/products/by-ids?ids=' + ids.join(',')).then(l => BB.row(box.lastElementChild, l)); }
+      } catch (e) { $('#hero').innerHTML = ''; BB.errorState($('#festival'), e); }
+      const v = BB.viewed(); if (v.length) { BB.api('/api/products/by-ids?ids=' + v.join(',')).then(l => { if (l.length) { $('#rvSec').style.display = ''; BB.row($('#rowViewed'), l); } }).catch(() => { }); }
+      BB.api('/api/reviews/recent').then(r => { $('#reviews').innerHTML = r.length ? r.slice(0, 4).map(x => `<div class="col-md-6 col-lg-3"><div class="bb-card h-100"><div>${BB.stars(x.rating)}</div><div class="fw-bold mt-1">${BB.esc(x.title || '')}</div><p class="small mb-2">${BB.esc((x.body || '').slice(0, 140))}</p><div class="small text-muted"><span class="vp">Verified Purchase</span> · ${BB.esc(x.userName)}<br><a href="/product-details.html?id=${x.productId}">${BB.esc(x.productName)}</a></div></div></div>`).join('') : '<div class="text-muted">Be the first to review a product you bought!</div>'; }).catch(() => { });
+    })();
+
+  </script>
+</body>
+
+</html>

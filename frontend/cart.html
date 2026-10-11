@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Shopping Cart | ByteBazaar</title>
+  <meta name="description" content="ByteBazaar - Shop More. Live Better.">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+
+<body>
+  <div id="bb-header"></div>
+  <main class="container-xl page-wrap pt-3">
+    <div class="row g-3">
+      <div class="col-lg-9">
+        <div class="bb-card">
+          <h1 class="h4">Shopping Cart</h1>
+          <div id="items">
+            <div class="loader"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3">
+        <div class="bb-card" id="sum"></div>
+      </div>
+    </div>
+  </main>
+  <div id="bb-footer"></div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+
+    const $ = BB.$;
+    async function render(c) {
+      if (!c.items.length) { BB.empty($('#items'), '🛒', 'Your cart is empty', 'Add something you love!', '<a class="btn btn-bb" href="/products.html">Continue shopping</a>'); $('#sum').innerHTML = '<div class="text-muted">Nothing to pay yet.</div>'; BB.setCount('#cartCount', 0); return; }
+      $('#items').innerHTML = c.items.map(i => `<div class="cart-row"><a href="/product-details.html?id=${i.product.id}"><img class="cimg" src="${BB.img(i.product)}" alt=""></a><div class="flex-grow-1"><a class="fw-semibold" href="/product-details.html?id=${i.product.id}">${BB.esc(i.product.name)}</a><div class="small text-muted">Sold by ${BB.esc(i.product.sellerName)}</div><div class="${i.product.stock === 0 ? 'stock-out' : 'stock-ok'} small">${i.product.stock === 0 ? 'Out of stock' : 'In stock'}</div>
+    <div class="mt-1"><b>${BB.money(i.product.finalPrice)}</b> ${i.product.discountPercent > 0 ? `<span class="mrp">${BB.money(i.product.price)}</span> <span class="text-danger small">${i.product.discountPercent}% off</span>` : ''}</div>
+    <div class="d-flex flex-wrap align-items-center gap-3 mt-2"><div class="qty"><button data-m="${i.id}" data-q="${i.quantity - 1}" ${i.quantity <= 1 ? 'disabled' : ''}>−</button><span>${i.quantity}</span><button data-m="${i.id}" data-q="${i.quantity + 1}" ${i.quantity >= 10 ? 'disabled' : ''}>+</button></div><a href="#" class="small" data-del="${i.id}">Remove</a><a href="#" class="small" data-w="${i.id}">Move to Wishlist</a></div></div><div class="text-end"><div class="fw-bold">${BB.money(i.lineTotal)}</div><div class="small text-muted">Subtotal</div></div></div>`).join('');
+      $('#sum').innerHTML = `<h6>Order Summary (${c.count} item${c.count > 1 ? 's' : ''})</h6><div class="summary-line"><span>Subtotal (MRP)</span><span>${BB.money(c.subtotal)}</span></div><div class="summary-line text-success"><span>Discount</span><span>− ${BB.money(c.discount)}</span></div><div class="summary-line"><span>Shipping</span><span>${Number(c.shipping) ? BB.money(c.shipping) : 'FREE'}</span></div><div class="summary-line"><span>Tax (5%)</span><span>${BB.money(c.tax)}</span></div><div class="summary-line total"><span>Total</span><span>${BB.money(c.total)}</span></div><a class="btn btn-bb w-100 mt-3" href="/checkout.html">Proceed to Checkout</a>${Number(c.shipping) ? '<div class="small text-muted mt-2">Add items worth ' + BB.money(499 - (c.subtotal - c.discount)) + ' more for FREE delivery.</div>' : ''}`;
+      BB.setCount('#cartCount', c.count);
+      BB.$$('[data-m]').forEach(b => b.onclick = () => act(() => BB.api('/api/cart/items/' + b.dataset.m, { method: 'PUT', body: { quantity: +b.dataset.q } })));
+      BB.$$('[data-del]').forEach(b => b.onclick = e => { e.preventDefault(); act(() => BB.api('/api/cart/items/' + b.dataset.del, { method: 'DELETE' })); });
+      BB.$$('[data-w]').forEach(b => b.onclick = e => { e.preventDefault(); act(() => BB.api('/api/cart/items/' + b.dataset.w + '/move-to-wishlist', { method: 'POST' }), 'Moved to wishlist'); });
+    }
+    async function act(fn, msg) { try { render(await fn()); if (msg) BB.toast(msg); } catch (e) { BB.fail(e); } }
+    (async () => { if (!await BB.init({ auth: true, roles: ['USER'] })) return; try { render(await BB.api('/api/cart')); } catch (e) { BB.errorState($('#items'), e); } })();
+
+  </script>
+</body>
+
+</html>

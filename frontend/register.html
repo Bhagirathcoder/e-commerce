@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Create account | ByteBazaar</title>
+  <meta name="description" content="ByteBazaar - Shop More. Live Better.">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+
+<body>
+  <div id="bb-header"></div>
+  <main class="container-xl page-wrap pt-3">
+    <div class="auth-wrap" style="max-width:640px">
+      <div class="logo-big"><a href="/index.html"><img src="/images/logo.svg" alt="ByteBazaar"></a></div>
+      <h4 class="mb-3">Create your account</h4>
+      <ul class="nav nav-pills mb-3" id="roleTabs">
+        <li class="nav-item"><button class="nav-link active" data-r="USER" type="button">Customer</button></li>
+        <li class="nav-item"><button class="nav-link" data-r="SELLER" type="button">Seller</button></li>
+      </ul>
+      <form id="f" class="row g-3" novalidate>
+        <div class="col-12"><label class="form-label">Full Name</label><input class="form-control" name="fullName"
+            required></div>
+        <div class="col-md-6"><label class="form-label">Email</label><input class="form-control" type="email"
+            name="email" required></div>
+        <div class="col-md-6"><label class="form-label">Phone Number</label><input class="form-control" name="phone"
+            required inputmode="numeric" maxlength="10" placeholder="10-digit mobile"></div>
+        <div class="col-12" id="storeBox" style="display:none"><label class="form-label">Store name</label><input
+            class="form-control" name="storeName"></div>
+        <div class="col-md-6"><label class="form-label">Password</label><input class="form-control" type="password"
+            name="password" required></div>
+        <div class="col-md-6"><label class="form-label">Confirm Password</label><input class="form-control"
+            type="password" name="confirmPassword" required></div>
+        <div class="form-text mt-0">8+ characters with upper & lower case, a digit and a special character (e.g.
+          Abcd@1234).</div>
+        <div class="col-12"><label class="form-label">Address</label><input class="form-control" name="address"></div>
+        <div class="col-md-4"><label class="form-label">City</label><input class="form-control" name="city"></div>
+        <div class="col-md-4"><label class="form-label">State</label><input class="form-control" name="state"></div>
+        <div class="col-md-4"><label class="form-label">PIN Code</label><input class="form-control" name="pin"
+            maxlength="6"></div>
+        <div class="col-12"><button class="btn btn-bb w-100 py-2" id="go">Create account</button></div>
+      </form>
+      <div class="text-center mt-3">Already have an account? <a href="/login.html">Sign in</a></div>
+    </div>
+  </main>
+  <div id="bb-footer"></div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+
+    const $ = BB.$; let role = BB.qs('role') === 'SELLER' ? 'SELLER' : 'USER';
+    function setRole(r) { role = r; BB.$$('#roleTabs button').forEach(b => b.classList.toggle('active', b.dataset.r === r)); $('#storeBox').style.display = r === 'SELLER' ? '' : 'none'; }
+    const PW = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$/;
+    (async () => {
+      await BB.init(); setRole(role); BB.$$('#roleTabs button').forEach(b => b.onclick = () => setRole(b.dataset.r));
+      $('#f').onsubmit = async e => {
+        e.preventDefault(); const f = e.target, d = Object.fromEntries(new FormData(f));
+        if (!d.fullName.trim()) return BB.toast('Please enter your full name', 'err'); if (!/^\S+@\S+\.\S+$/.test(d.email)) return BB.toast('Enter a valid email address', 'err'); if (!/^[6-9]\d{9}$/.test(d.phone)) return BB.toast('Enter a valid 10-digit mobile number', 'err');
+        if (!PW.test(d.password)) return BB.toast('Password needs 8+ chars with upper, lower, digit and special character', 'err'); if (d.password !== d.confirmPassword) return BB.toast('Passwords do not match', 'err'); if (d.pin && !/^\d{6}$/.test(d.pin)) return BB.toast('PIN code must be 6 digits', 'err');
+        d.role = role; BB.spin($('#go'), true, 'Creating...');
+        try { const r = await BB.api('/api/auth/register', { method: 'POST', body: d }); BB.setAuth(r); BB.toast('Welcome to ByteBazaar!'); setTimeout(() => location.href = BB.homeFor(r.user.role), 600); } catch (x) { BB.fail(x); BB.spin($('#go'), false); }
+      };
+    })();
+
+  </script>
+</body>
+
+</html>

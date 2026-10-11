@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Help & Support | ByteBazaar</title>
+  <meta name="description" content="ByteBazaar - Shop More. Live Better.">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+
+<body>
+  <div id="bb-header"></div>
+  <main class="container-xl page-wrap pt-3">
+    <div class="cs-band mb-3">
+      <div>
+        <h1 class="h3 mb-1">24×7 Customer Support</h1>
+        <div class="opacity-75">We're here around the clock. Choose how you'd like to get help.</div>
+      </div><button class="btn btn-bb btn-lg" id="open"><i class="bi bi-headset"></i> 24×7 Customer Support</button>
+    </div>
+    <div class="row g-3">
+      <div class="col-lg-7">
+        <div class="chat-box" id="aiBox">
+          <div class="chat-head"><i class="bi bi-robot me-2"></i>AI Assistant <span
+              class="small opacity-75 ms-2">answers from your real order data</span></div>
+          <div class="chat-body" id="cb"></div>
+          <div class="chips" id="chips"></div>
+          <form class="chat-input" id="cf"><input class="form-control" id="ci"
+              placeholder="Ask about orders, payments, returns, refunds…" autocomplete="off" maxlength="500"><button
+              class="btn btn-bb"><i class="bi bi-send"></i></button></form>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="bb-card mb-3">
+          <h5>Talk to a person</h5>
+          <p class="small text-muted">Prefer a human? Message a ByteBazaar admin and we'll reply in the chat.</p><a
+            class="btn btn-navy w-100 mb-2" href="/support-chat.html"><i class="bi bi-chat-dots"></i> Chat with
+            Admin</a><button class="btn btn-outline-secondary w-100" id="tk"><i class="bi bi-ticket-perforated"></i>
+            Create Support Ticket</button>
+        </div>
+        <div class="bb-card">
+          <h5>Help topics</h5>
+          <div class="row g-2 text-center" id="topics"></div>
+        </div>
+      </div>
+    </div>
+    <div class="section mt-3 faq">
+      <h2>Frequently asked questions</h2>
+      <div class="accordion" id="faq"></div>
+    </div>
+  </main>
+  <div id="bb-footer"></div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+
+    const $ = BB.$;
+    const TOPICS = [['📦', 'Order Help', 'Where is my order?'], ['💳', 'Payment Help', 'Payment help'], ['🚚', 'Shipping Help', 'Where is my order?'], ['↩️', 'Return Help', 'How do I return a product?'], ['💸', 'Refund Help', 'Refund status'], ['🛡️', 'Warranty Help', 'Warranty help'], ['👤', 'Account Help', 'How do I change my account details?'], ['❌', 'Cancellation', 'How do I cancel an order?']];
+    const FAQ = [['How do I track my order?', 'Go to Orders → Order details (or Track Order). Every step shows date, time and location.'], ['How long do I have to return a product?', 'Eligible items can be returned within 7 days of delivery. The deadline is calculated by our server from the exact delivery time.'], ['When will I get my refund?', 'After the returned product passes analysis, a refund is initiated to your linked bank account (or original UPI payment) and then completed.'], ['Which payment methods are accepted?', 'Cash on Delivery and UPI. UPI orders are confirmed only after the server verifies the payment.'], ['Can I cancel an order?', 'Yes, while it is Placed or Confirmed. Paid orders are refunded automatically.'], ['How do warranties work?', 'Products with a warranty get a Warranty Certificate PDF after delivery from the order details page.']];
+    function add(who, text) { const d = document.createElement('div'); d.className = 'msg ' + (who === 'me' ? 'me' : 'them'); d.textContent = text; $('#cb').appendChild(d); $('#cb').scrollTop = 1e9; }
+    function chips(l) { $('#chips').innerHTML = (l || []).map(c => `<span class="chip">${BB.esc(c)}</span>`).join(''); BB.$$('.chip').forEach(c => c.onclick = () => ask(c.textContent)); }
+    async function ask(text) {
+      if (!BB.token()) { location.href = BB.loginUrl(); return; }
+      if (/chat with admin/i.test(text)) { location.href = '/support-chat.html'; return; }
+      add('me', text); chips([]); const m = text.match(/#(\d+)/);
+      try { const r = await BB.api('/api/support/ai', { method: 'POST', body: { message: text, orderId: m ? +m[1] : null } }); add('ai', r.reply); chips(r.quickReplies); } catch (e) { add('ai', 'Sorry, I could not fetch that right now: ' + e.message); }
+    }
+    (async () => {
+      await BB.init();
+      $('#topics').innerHTML = TOPICS.map(t => `<div class="col-6"><a href="#" class="tile-card d-block text-decoration-none p-2" data-q="${BB.esc(t[2])}"><div class="fs-3">${t[0]}</div><div class="small text-dark">${t[1]}</div></a></div>`).join('');
+      BB.$$('[data-q]').forEach(a => a.onclick = e => { e.preventDefault(); ask(a.dataset.q); $('#aiBox').scrollIntoView({ behavior: 'smooth' }); });
+      $('#faq').innerHTML = FAQ.map((f, i) => `<div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button ${i ? 'collapsed' : ''}" data-bs-toggle="collapse" data-bs-target="#f${i}">${f[0]}</button></h2><div id="f${i}" class="accordion-collapse collapse ${i ? '' : 'show'}" data-bs-parent="#faq"><div class="accordion-body">${f[1]}</div></div></div>`).join('');
+      add('ai', 'Hello! Welcome to ByteBazaar.\nHow can I help you?'); chips(['Where is my order?', 'How do I return a product?', 'Refund status', 'Payment help', 'Warranty help', 'Chat with admin']);
+      $('#cf').onsubmit = e => { e.preventDefault(); const v = $('#ci').value.trim(); if (v) { $('#ci').value = ''; ask(v); } };
+      $('#open').onclick = () => { const m = BB.modal('24×7 Customer Support', '<p>How would you like to get help?</p><div class="d-grid gap-2"><button class="btn btn-bb btn-lg" id="m1"><i class="bi bi-robot"></i> AI Assistant</button><a class="btn btn-navy btn-lg" href="/support-chat.html"><i class="bi bi-chat-dots"></i> Chat with Admin</a></div>'); $('#m1', m.el).onclick = () => { m.close(); $('#aiBox').scrollIntoView({ behavior: 'smooth' }); $('#ci').focus(); }; };
+      $('#tk').onclick = () => { if (!BB.token()) { location.href = BB.loginUrl(); return; } const u = BB.user(); const m = BB.modal('Create support ticket', '<form id="tf"><input class="form-control mb-2" name="subject" placeholder="Subject (e.g. Order #12 issue)" required><textarea class="form-control" rows="5" name="message" placeholder="Describe your problem" required></textarea></form>', { footer: '<button class="btn btn-bb" id="ts">Submit ticket</button>' }); $('#ts', m.el).onclick = async () => { const f = $('#tf', m.el); if (!f.reportValidity()) return; try { await BB.api('/api/contact', { method: 'POST', body: { name: u.fullName, email: u.email, phone: u.phone, subject: f.subject.value, message: f.message.value } }); m.close(); BB.toast('Ticket submitted. We will contact you by email.'); } catch (x) { BB.fail(x); } }; };
+    })();
+
+  </script>
+</body>
+
+</html>

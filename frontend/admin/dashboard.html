@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Admin Dashboard | ByteBazaar</title>
+    <meta name="description" content="ByteBazaar - Shop More. Live Better.">
+    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="dash">
+        <aside class="sidebar" id="sidebar"></aside>
+        <section class="dash-main">
+            <div class="dash-top" id="dash-top"></div>
+            <div class="row g-3" id="cards">
+                <div class="loader"></div>
+            </div>
+            <div class="row g-3 mt-1" id="charts"></div>
+            <h5 class="mt-4">Sales & stock overview</h5>
+            <div id="an"></div>
+            <div class="d-flex justify-content-end mt-2"><a href="/admin/analytics.html"
+                    class="btn btn-sm btn-navy">Full sales, stock & revenue report →</a></div>
+        </section>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="/js/dash.js"></script>
+    <script>
+        const $ = BB.$;
+        if (BB.dash('ADMIN', 'dashboard', 'Admin Dashboard')) {
+
+            (async () => {
+                BB.analyticsView($('#an'), '/api/admin', { days: 7, compact: true });
+                try {
+                    const d = await BB.api('/api/admin/dashboard'), s = BB.stat;
+                    $('#cards').innerHTML = s('bi-people', '#0f2742', 'Total Users', d.totalUsers) + s('bi-shop', '#173a63', 'Total Sellers', d.totalSellers) + s('bi-boxes', '#0a7ea4', 'Total Products', d.totalProducts) + s('bi-patch-check', '#067d62', 'Verified Products', d.verifiedProducts) + s('bi-hourglass-split', '#b45309', 'Pending Products', d.pendingProducts) + s('bi-box-seam', '#173a63', 'Total Orders', d.totalOrders) + s('bi-currency-rupee', '#fb8500', 'Total Sales', BB.money(d.totalSales)) + s('bi-percent', '#7a1fa2', 'Total Commission (' + d.commissionPercent + '%)', BB.money(d.totalCommission)) + s('bi-bank', '#067d62', 'Seller Payout', BB.money(d.sellerPayout)) + s('bi-clock-history', '#b45309', 'Pending Commission', BB.money(d.pendingCommission)) + s('bi-hourglass', '#fb8500', 'Pending Orders', d.pendingOrders) + s('bi-truck', '#067d62', 'Delivered Orders', d.deliveredOrders) + s('bi-arrow-return-left', '#c7222a', 'Return Requests', d.returnRequests) + s('bi-cash-coin', '#173a63', 'Refunds', d.refunds) + s('bi-headset', '#0a7ea4', 'Support Tickets', d.supportTickets);
+                    const c = d.charts; const box = (id, t, w) => `<div class="col-lg-${w || 4}"><div class="table-card"><h6>${t}</h6><div style="height:230px"><canvas id="${id}"></canvas></div></div></div>`;
+                    $('#charts').innerHTML = box('c1', 'Sales (last 7 days)', 6) + box('c2', 'Orders (last 7 days)', 6) + box('c3', 'Orders by status') + box('c4', 'Users') + box('c5', 'Products') + box('c6', 'Commission vs seller earnings') + box('c7', 'Returns by status', 8);
+                    const COL = ['#0f2742', '#fb8500', '#0a7ea4', '#067d62', '#7a1fa2', '#c7222a', '#ffb703', '#5b6b7f', '#9aa7b6'], lab = o => Object.keys(o), val = o => Object.values(o), dl = o => lab(o).map(x => new Date(x).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }));
+                    const mk = (id, cfg) => new Chart(document.getElementById(id), cfg), opt = { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }, noLeg = { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } };
+                    mk('c1', { type: 'line', data: { labels: dl(c.salesByDay), datasets: [{ label: 'Sales ₹', data: val(c.salesByDay), borderColor: '#fb8500', backgroundColor: 'rgba(251,133,0,.15)', fill: true, tension: .3 }] }, options: noLeg });
+                    mk('c2', { type: 'bar', data: { labels: dl(c.ordersByDay), datasets: [{ data: val(c.ordersByDay), backgroundColor: '#0f2742' }] }, options: noLeg });
+                    mk('c3', { type: 'doughnut', data: { labels: lab(c.ordersByStatus), datasets: [{ data: val(c.ordersByStatus), backgroundColor: COL }] }, options: opt });
+                    mk('c4', { type: 'pie', data: { labels: lab(c.usersByRole), datasets: [{ data: val(c.usersByRole), backgroundColor: COL }] }, options: opt });
+                    mk('c5', { type: 'doughnut', data: { labels: lab(c.productsByStatus), datasets: [{ data: val(c.productsByStatus), backgroundColor: ['#fb8500', '#067d62', '#c7222a'] }] }, options: opt });
+                    mk('c6', { type: 'doughnut', data: { labels: ['ByteBazaar commission', 'Seller earnings'], datasets: [{ data: [c.commission.commission, c.commission.sellerAmount], backgroundColor: ['#7a1fa2', '#067d62'] }] }, options: opt });
+                    mk('c7', { type: 'bar', data: { labels: lab(c.returnsByStatus).map(x => x.replace(/_/g, ' ')), datasets: [{ data: val(c.returnsByStatus), backgroundColor: '#c7222a' }] }, options: noLeg });
+                } catch (e) { BB.errorState($('#cards'), e); }
+            })();
+        }
+    </script>
+</body>
+
+</html>

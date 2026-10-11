@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>My Account | ByteBazaar</title>
+  <meta name="description" content="ByteBazaar - Shop More. Live Better.">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+
+<body>
+  <div id="bb-header"></div>
+  <main class="container-xl page-wrap pt-3">
+    <div class="row g-3">
+      <div class="col-lg-3">
+        <div class="bb-card text-center"><img id="av" width="110" height="110" class="rounded-circle mb-2"
+            style="object-fit:cover;background:#e5ebf2">
+          <div class="fw-bold" id="nm"></div>
+          <div class="small text-muted" id="em"></div><label class="btn btn-sm btn-outline-secondary mt-2">Upload
+            photo<input type="file" id="ph" accept=".jpg,.jpeg,.png,.webp" hidden></label>
+        </div>
+        <div class="list-group mt-3" id="tabs"><a class="list-group-item list-group-item-action active" data-t="profile"
+            href="#profile"><i class="bi bi-person me-2"></i>Profile & Address</a><a
+            class="list-group-item list-group-item-action" data-t="bank" href="#bank"><i
+              class="bi bi-bank me-2"></i>Bank Accounts</a><a class="list-group-item list-group-item-action"
+            data-t="orders" href="#orders"><i class="bi bi-box-seam me-2"></i>Order History</a><a
+            class="list-group-item list-group-item-action" href="/returns.html"><i
+              class="bi bi-arrow-return-left me-2"></i>Returns</a><a class="list-group-item list-group-item-action"
+            href="/invoices.html"><i class="bi bi-receipt me-2"></i>Invoices</a><a
+            class="list-group-item list-group-item-action" href="/notifications.html"><i
+              class="bi bi-bell me-2"></i>Notifications</a></div>
+      </div>
+      <div class="col-lg-9">
+        <div class="bb-card" id="pane"></div>
+      </div>
+    </div>
+  </main>
+  <div id="bb-footer"></div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+
+    const $ = BB.$; let U;
+    async function show(t) {
+      BB.$$('#tabs [data-t]').forEach(a => a.classList.toggle('active', a.dataset.t === t)); const p = $('#pane');
+      if (t === 'bank') { p.innerHTML = '<h5>Bank accounts for refunds</h5><div id="bk"></div>'; BB.bankManager($('#bk')); }
+      else if (t === 'orders') { p.innerHTML = '<h5>Order history</h5><div id="oh"></div>'; BB.loader($('#oh')); try { const l = await BB.api('/api/orders'); BB.table($('#oh'), [{ h: 'Order', f: o => '<a href="/order-details.html?id=' + o.id + '">#' + o.id + '</a>' }, { h: 'Date', f: o => BB.dateOnly(o.createdAt) }, { h: 'Items', f: o => o.items.length }, { h: 'Total', f: o => BB.money(o.total) }, { h: 'Status', f: o => BB.badge(o.status) }], l, 'No orders yet'); } catch (e) { BB.errorState($('#oh'), e); } }
+      else { p.innerHTML = '<h5>Profile & address</h5><div id="pf"></div>'; BB.profileForm($('#pf'), U, false); }
+    }
+    (async () => {
+      if (!await BB.init({ auth: true, roles: ['USER'] })) return;
+      try { U = await BB.api('/api/auth/me'); localStorage.setItem('bb_user', JSON.stringify(U)); } catch (e) { return BB.errorState($('#pane'), e); }
+      $('#nm').textContent = U.fullName; $('#em').textContent = U.email + ' · ' + U.phone; $('#av').src = U.profileImage || BB.ph('Accounts', null, U.fullName).replace(/🛍️|%F0%9F%9B%8D%EF%B8%8F/, '');
+      $('#av').src = U.profileImage || 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#dbe4ee"/><circle cx="50" cy="38" r="18" fill="#8aa0b8"/><path d="M14 92c4-24 22-32 36-32s32 8 36 32z" fill="#8aa0b8"/></svg>');
+      $('#ph').onchange = async e => { const fd = new FormData(); fd.append('file', e.target.files[0]); try { U = await BB.api('/api/user/profile-image', { method: 'POST', form: fd }); localStorage.setItem('bb_user', JSON.stringify(U)); $('#av').src = U.profileImage; BB.toast('Photo updated'); } catch (x) { BB.fail(x); } };
+      BB.$$('#tabs [data-t]').forEach(a => a.onclick = e => { e.preventDefault(); history.replaceState(null, '', '#' + a.dataset.t); show(a.dataset.t); });
+      show((location.hash || '#profile').slice(1));
+    })();
+
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Products & Verification | ByteBazaar</title>
+    <meta name="description" content="ByteBazaar - Shop More. Live Better.">
+    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="dash">
+        <aside class="sidebar" id="sidebar"></aside>
+        <section class="dash-main">
+            <div class="dash-top" id="dash-top"></div>
+            <div class="d-flex flex-wrap gap-2 justify-content-between mb-3">
+                <div class="d-flex gap-2"><input class="form-control" id="q" placeholder="Search…"><select
+                        class="form-select w-auto" id="vf">
+                        <option value="">All</option>
+                        <option value="PENDING_VERIFICATION">Pending verification</option>
+                        <option value="VERIFIED">Verified</option>
+                        <option value="REJECTED">Rejected</option>
+                    </select></div><button class="btn btn-bb" id="add"><i class="bi bi-plus-lg"></i> Add
+                    product</button>
+            </div>
+            <div class="table-card" id="t"></div>
+        </section>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="/js/dash.js"></script>
+    <script>
+        const $ = BB.$;
+        if (BB.dash('ADMIN', 'products', 'Products & Verification')) {
+
+            let all = [];
+            async function load() { try { all = await BB.api('/api/admin/products'); draw(); } catch (e) { BB.errorState($('#t'), e); } }
+            function draw() {
+                const q = ($('#q').value || '').toLowerCase(), v = $('#vf').value; const l = all.filter(p => (!v || p.verification === v) && (!q || (p.name + p.brand + p.sku + p.sellerName).toLowerCase().includes(q)));
+                BB.table($('#t'), [{ h: 'ID', f: p => p.id }, { h: '', f: p => `<img class="timg" src="${BB.img(p)}">` }, { h: 'Product', f: p => `<div class="fw-semibold">${BB.esc(p.name)}</div><small class="text-muted">${BB.esc(p.brand || '')} · ${BB.esc(p.category)}</small>` }, { h: 'Seller', f: p => BB.esc(p.sellerName) }, { h: 'Price', f: p => BB.money(p.finalPrice) }, { h: 'Stock', f: p => p.stock }, { h: 'Verification', f: p => BB.badge(p.verification) }, { h: 'Active', f: p => p.active ? 'Yes' : 'No' },
+                { h: 'Actions', f: p => `<div class="d-flex gap-1 flex-wrap">${p.verification !== 'VERIFIED' ? `<button class="btn btn-sm btn-success" data-v="${p.id}">Verify</button>` : ''}${p.verification !== 'REJECTED' ? `<button class="btn btn-sm btn-outline-danger" data-r="${p.id}">Reject</button>` : ''}<button class="btn btn-sm btn-outline-${p.active ? 'warning' : 'success'}" data-a="${p.id}" data-val="${!p.active}">${p.active ? 'Deactivate' : 'Activate'}</button><button class="btn btn-sm btn-outline-primary" data-e="${p.id}">Edit</button><button class="btn btn-sm btn-outline-danger" data-d="${p.id}"><i class="bi bi-trash"></i></button></div>` }], l, 'No products');
+                const call = (url, m = 'PUT') => BB.api(url, { method: m }).then(() => { BB.toast('Done'); load(); }).catch(BB.fail);
+                BB.$$('[data-v]').forEach(b => b.onclick = () => call('/api/admin/products/' + b.dataset.v + '/verify'));
+                BB.$$('[data-r]').forEach(b => b.onclick = () => call('/api/admin/products/' + b.dataset.r + '/reject'));
+                BB.$$('[data-a]').forEach(b => b.onclick = () => call('/api/admin/products/' + b.dataset.a + '/active?value=' + b.dataset.val));
+                BB.$$('[data-e]').forEach(b => b.onclick = () => BB.productForm(all.find(p => p.id == b.dataset.e), { admin: true, onSaved: load }));
+                BB.$$('[data-d]').forEach(b => b.onclick = async () => { if (await BB.confirmBox('Delete this product? (It is hidden but order history is kept.)', 'Delete')) call('/api/admin/products/' + b.dataset.d, 'DELETE'); });
+            }
+            $('#q').oninput = draw; $('#vf').onchange = draw; $('#add').onclick = () => BB.productForm(null, { admin: true, onSaved: load }); load();
+        }
+    </script>
+</body>
+
+</html>
